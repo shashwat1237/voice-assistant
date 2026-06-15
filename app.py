@@ -14,7 +14,7 @@ st.set_page_config(page_title=" किसान सहायक (Farmer Assistan
 init_session_state()
 st.title(" 🌾 किसान सहायक (Natural Farming Assistant)")
 
-audio_file = st.file_uploader(" अपना प्रश्न रिकॉर्ड करें (Upload Audio)", type=["wav", "mp3", "m4a"])
+audio_file = st.audio_input("🎤 अपना प्रश्न रिकॉर्ड करें (Tap to Record)")
 text_input = st.text_input(" या अपना प्रश्न यहाँ लिखें (Or type here):")
 
 col1, col2 = st.columns([1, 5])
