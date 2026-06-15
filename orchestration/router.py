@@ -4,7 +4,6 @@ import os
 import requests
 from rag.retrieval import retrieve_and_answer
 from orchestration.error_handlers import LLMTimeoutError, VectorDBError, OutOfDomainError
-from huggingface_hub.errors import InferenceTimeoutError, HfHubHTTPError
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 WEATHER_PATH = os.path.join(BASE_DIR, "data", "weather.json")
@@ -25,19 +24,19 @@ def fetch_mock_market_api(crop: str) -> dict:
         data = json.load(f)
     for key in data.keys():
         if key in crop.lower():
-            return {"status": 200, "data": {key: data[key]}}
+             return {"status": 200, "data": {key: data[key]}}
     return {"status": 404, "data": "Crop price unavailable"}
 
 def route_query(english_query: str, session_history: str) -> dict:
     query_lower = english_query.lower()
-
+    
     if "weather" in query_lower:
         api_response = fetch_mock_weather_api(query_lower)
         if api_response["status"] == 200:
             return {"answer": f"Weather API Data: {json.dumps(api_response['data'])}", "sources": ["Mock Weather API"], "context_used": []}
         else:
             return {"answer": "Weather data currently unavailable for this region.", "sources": [], "context_used": []}
-
+            
     if "price" in query_lower or "market" in query_lower:
         api_response = fetch_mock_market_api(query_lower)
         if api_response["status"] == 200:
@@ -51,10 +50,12 @@ def route_query(english_query: str, session_history: str) -> dict:
     try:
         return retrieve_and_answer(english_query, session_history)
     except requests.exceptions.ConnectionError:
-        raise
-    except (TimeoutError, InferenceTimeoutError, HfHubHTTPError):
-        raise LLMTimeoutError()
+        raise  # Bubble up to trigger the No Internet UI state
     except OutOfDomainError:
         raise
+    except TimeoutError:
+        raise LLMTimeoutError()
     except Exception as e:
+        if "timeout" in str(e).lower() or "503" in str(e) or "504" in str(e):
+            raise LLMTimeoutError()
         raise VectorDBError(str(e))
