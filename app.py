@@ -54,18 +54,27 @@ if audio_bytes or (ask_button and text_input):
             raise EmptyAudioError()
 
         with st.spinner("सिस्टम सोच रहा है (Thinking)..."):
+            
+            # TRACKER 1: Hindi to English Translation
+            st.caption("🔄 Translating Hindi to English...")
             english_query = translate_hi_to_en(hindi_query)
             current_history = get_history_string()
             
+            # TRACKER 2: RAG Pipeline & Expert LLM
+            st.caption("🔍 Searching database and generating answer...")
             rag_response = route_query(english_query, current_history)
             
             if rag_response["answer"] == "Please specify your question.":
                  st.warning(ERROR_MESSAGES["missing_context"])
                  st.stop()
                  
+            # TRACKER 3: English to Hindi Translation
+            st.caption("🔄 Translating answer back to Hindi...")     
             hindi_answer = translate_en_to_hi(rag_response["answer"])
             update_history(english_query, rag_response["answer"])
             
+            # TRACKER 4: Text-to-Speech
+            st.caption("🔊 Generating Audio...")
             out_audio_path = f"out_{uuid.uuid4().hex}.mp3"
             audio_out = text_to_speech(hindi_answer, out_audio_path)
 
