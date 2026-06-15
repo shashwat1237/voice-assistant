@@ -1,7 +1,7 @@
 import chromadb
 import os
 import streamlit as st
-from google import genai
+from groq import Groq
 from rag.embeddings import get_embedding
 from orchestration.error_handlers import OutOfDomainError
 
@@ -42,18 +42,22 @@ def retrieve_and_answer(query: str, history: str) -> dict:
         system_prompt = f.read()
 
     prompt = system_prompt.replace("{history}", history).replace("{context}", context)
-    prompt += f"\n\nQuestion: {query}\nAnswer:"
 
-    # --- MODERN NATIVE SDK CLIENT ---
-    api_key = st.secrets.get("GEMINI_API_KEY")
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model='gemini-2.0-flash',
-        contents=prompt
+    # --- GROQ LPU INFERENCE ---
+    api_key = st.secrets.get("GROQ_API_KEY")
+    client = Groq(api_key=api_key)
+    
+    response = client.chat.completions.create(
+        model="llama3-8b-8192",
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": f"Question: {query}"}
+        ],
+        temperature=0.4
     )
 
     return {
-        "answer": response.text.strip(),
+        "answer": response.choices[0].message.content.strip(),
         "sources": sources,
         "context_used": results["documents"][0]
     }
