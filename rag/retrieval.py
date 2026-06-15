@@ -1,4 +1,5 @@
 import chromadb
+import os
 import streamlit as st
 import google.generativeai as genai
 from rag.embeddings import get_embedding
