@@ -1,17 +1,20 @@
 import streamlit as st
-from google import genai
+from groq import Groq
 from orchestration.error_handlers import LLMTimeoutError
 
 def translate_hi_to_en(hindi_text: str) -> str:
     try:
-        # Using the modern, official Google GenAI Client
-        api_key = st.secrets.get("GEMINI_API_KEY")
-        client = genai.Client(api_key=api_key)
+        api_key = st.secrets.get("GROQ_API_KEY")
+        client = Groq(api_key=api_key)
         
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=f"Translate the following Hindi agricultural query to English. Only provide the translation, no conversational text: {hindi_text}"
+        response = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {"role": "system", "content": "You are a direct translator. Translate the following Hindi agricultural query to English. Only provide the translation, no conversational text."},
+                {"role": "user", "content": hindi_text}
+            ],
+            temperature=0.1
         )
-        return response.text.strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        raise Exception(f"Gemini API Error: {str(e)}")
+        raise Exception(f"Groq API Error: {str(e)}")
