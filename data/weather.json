@@ -1,0 +1,5 @@
+{
+"haryana": {"temperature": 32, "humidity": 60, "rain": "Low"},
+"punjab": {"temperature": 30, "humidity": 65, "rain": "Medium"},
+"uttar pradesh": {"temperature": 34, "humidity": 55, "rain": "Low"}
+}

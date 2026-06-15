@@ -1,0 +1,4 @@
+Translate accurately.
+Do not explain.
+Do not summarize.
+Return only translation.
