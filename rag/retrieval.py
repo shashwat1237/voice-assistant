@@ -48,7 +48,7 @@ def retrieve_and_answer(query: str, history: str) -> dict:
     api_key = st.secrets.get("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
-        model='gemini-1.5-flash-latest',
+        model='gemini-2.0-flash',
         contents=prompt
     )
 
