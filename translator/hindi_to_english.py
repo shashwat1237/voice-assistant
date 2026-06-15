@@ -7,7 +7,7 @@ def translate_hi_to_en(hindi_text: str) -> str:
         api_key = st.secrets.get("GEMINI_API_KEY")
         genai.configure(api_key=api_key)
         
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-pro')
         prompt = f"Translate the following Hindi agricultural query to English. Only provide the translation, no conversational text: {hindi_text}"
         response = model.generate_content(prompt)
         return response.text.strip()
