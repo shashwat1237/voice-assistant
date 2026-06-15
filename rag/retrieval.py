@@ -7,7 +7,7 @@ from orchestration.error_handlers import OutOfDomainError
 DB_PATH = os.path.join(os.path.dirname(__file__), "chroma_db")
 PROMPT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts", "expert_prompt.txt")
 chroma_client = chromadb.PersistentClient(path=DB_PATH)
-hf_client = InferenceClient(token=os.environ.get("HF_TOKEN"), timeout=15.0)
+hf_client = InferenceClient(token=os.environ.get("HF_TOKEN"), timeout=120.0)
 
 # Patched: Tightened boundary to 1.1 ensures mathematical cosine overlap
 DISTANCE_THRESHOLD = 1.1
