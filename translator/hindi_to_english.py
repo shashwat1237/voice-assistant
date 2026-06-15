@@ -4,7 +4,6 @@ from orchestration.error_handlers import LLMTimeoutError
 
 def translate_hi_to_en(hindi_text: str) -> str:
     try:
-        # Fetching directly from Streamlit's secrets manager
         api_key = st.secrets.get("GEMINI_API_KEY")
         genai.configure(api_key=api_key)
         
@@ -12,5 +11,6 @@ def translate_hi_to_en(hindi_text: str) -> str:
         prompt = f"Translate the following Hindi agricultural query to English. Only provide the translation, no conversational text: {hindi_text}"
         response = model.generate_content(prompt)
         return response.text.strip()
-    except Exception:
-        raise LLMTimeoutError()
+    except Exception as e:
+        # Ripping off the mask. No more fake timeout messages.
+        raise Exception(f"Gemini API Error: {str(e)}")
