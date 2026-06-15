@@ -2,7 +2,7 @@ from huggingface_hub import InferenceClient
 import os
 from orchestration.error_handlers import LLMTimeoutError
 
-client = InferenceClient(token=os.environ.get("HF_TOKEN"))
+client = InferenceClient(token=os.environ.get("HF_TOKEN"),timeout=120.0)
 PROMPT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts", "translator_prompt.txt")
 
 def translate_hi_to_en(hindi_text: str) -> str:
