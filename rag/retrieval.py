@@ -1,6 +1,6 @@
 import chromadb
-from huggingface_hub import InferenceClient
 import os
+import google.generativeai as genai
 from rag.embeddings import get_embedding
 from orchestration.error_handlers import OutOfDomainError
 
@@ -8,7 +8,6 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "chroma_db")
 PROMPT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts", "expert_prompt.txt")
 
 chroma_client = chromadb.PersistentClient(path=DB_PATH)
-hf_client = InferenceClient(token=os.environ.get("HF_TOKEN"), timeout=120.0)
 DISTANCE_THRESHOLD = 1.1
 
 def retrieve_and_answer(query: str, history: str) -> dict:
@@ -16,11 +15,9 @@ def retrieve_and_answer(query: str, history: str) -> dict:
     # --- AUTO-HEALING DATABASE LOGIC ---
     try:
         collection = chroma_client.get_collection(name="farming_knowledge")
-        # If the collection exists but is empty, trigger a rebuild
         if collection.count() == 0:
             raise ValueError("Database is empty")
     except Exception:
-        # If missing, automatically run the ingestion script on the fly
         from rag.ingestion import ingest_knowledge
         ingest_knowledge()
         collection = chroma_client.get_collection(name="farming_knowledge")
@@ -46,14 +43,13 @@ def retrieve_and_answer(query: str, history: str) -> dict:
     prompt = system_prompt.replace("{history}", history).replace("{context}", context)
     prompt += f"\n\nQuestion: {query}\nAnswer:"
 
-    answer = hf_client.text_generation(
-        prompt,
-        model="mistralai/Mistral-7B-Instruct-v0.2",
-        max_new_tokens=300
-    )
+    # --- GEMINI INTEGRATION ---
+    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    response = model.generate_content(prompt)
 
     return {
-        "answer": answer.strip(),
+        "answer": response.text.strip(),
         "sources": sources,
         "context_used": results["documents"][0]
     }
