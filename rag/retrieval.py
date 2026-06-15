@@ -47,7 +47,7 @@ def retrieve_and_answer(query: str, history: str) -> dict:
     # --- NATIVE STREAMLIT SECRETS AUTH ---
     api_key = st.secrets.get("GEMINI_API_KEY")
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-pro')
     response = model.generate_content(prompt)
 
     return {
