@@ -9,7 +9,7 @@ def translate_hi_to_en(hindi_text: str) -> str:
         client = genai.Client(api_key=api_key)
         
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-1.5-flash-latest',
             contents=f"Translate the following Hindi agricultural query to English. Only provide the translation, no conversational text: {hindi_text}"
         )
         return response.text.strip()
