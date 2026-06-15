@@ -19,7 +19,7 @@ st.title("🌾 किसान सहायक (Natural Farming Assistant)")
 
 # The Third-Party Live Mic Bypass
 st.write("🎤 अपना प्रश्न रिकॉर्ड करें (Tap mic to record)")
-audio_bytes = audio_recorder(text="", icon_size="2x", format="wav")
+audio_bytes = audio_recorder(text="", icon_size="2x")
 
 text_input = st.text_input("या अपना प्रश्न यहाँ लिखें (Or type here):")
 
