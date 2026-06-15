@@ -1,7 +1,7 @@
 import chromadb
 import os
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 from rag.embeddings import get_embedding
 from orchestration.error_handlers import OutOfDomainError
 
@@ -44,11 +44,13 @@ def retrieve_and_answer(query: str, history: str) -> dict:
     prompt = system_prompt.replace("{history}", history).replace("{context}", context)
     prompt += f"\n\nQuestion: {query}\nAnswer:"
 
-    # --- NATIVE STREAMLIT SECRETS AUTH ---
+    # --- MODERN NATIVE SDK CLIENT ---
     api_key = st.secrets.get("GEMINI_API_KEY")
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-pro')
-    response = model.generate_content(prompt)
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model='gemini-1.5-flash',
+        contents=prompt
+    )
 
     return {
         "answer": response.text.strip(),
