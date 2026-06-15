@@ -48,7 +48,7 @@ def retrieve_and_answer(query: str, history: str) -> dict:
     client = Groq(api_key=api_key)
     
     response = client.chat.completions.create(
-        model="llama3-8b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": f"Question: {query}"}
