@@ -8,7 +8,7 @@ def translate_hi_to_en(hindi_text: str) -> str:
         client = Groq(api_key=api_key)
         
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a direct translator. Translate the following Hindi agricultural query to English. Only provide the translation, no conversational text."},
                 {"role": "user", "content": hindi_text}
