@@ -11,4 +11,4 @@ numpy<2.0.0
 requests==2.31.0
 protobuf==3.20.3
 deep-translator==1.11.4
-google-genai
+groq
