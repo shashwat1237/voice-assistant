@@ -51,9 +51,10 @@ def retrieve_and_answer(query: str, history: str) -> dict:
         model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": prompt},
+            {"role": "system", "content": "ABSOLUTE RULE: Answer in a polite, conversational paragraph. You are strictly forbidden from outputting JSON, dictionaries, curly brackets {}, or the word 'API'."},
             {"role": "user", "content": f"Question: {query}"}
         ],
-        temperature=0.4
+        temperature=0.3
     )
 
     return {
