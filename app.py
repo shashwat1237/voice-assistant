@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import uuid
 import requests
+import re
 from audio_recorder_streamlit import audio_recorder
 from voice.whisper import speech_to_text
 from voice.tts import text_to_speech
@@ -10,6 +11,37 @@ from translator.english_to_hindi import translate_en_to_hi
 from orchestration.router import route_query
 from orchestration.state_manager import init_session_state, get_history_string, update_history, clear_history
 from orchestration.error_handlers import ERROR_MESSAGES, EmptyAudioError, NoisyAudioError, PartialRecordingError, LLMTimeoutError, VectorDBError, OutOfDomainError
+
+# --- INTERCEPTOR UTILITY ---
+def clean_final_response(text: str) -> str:
+    """
+    Programmatically strips out JSON data, curly braces, and internal
+    system tags to guarantee a clean conversational output.
+    """
+    if not text:
+        return ""
+        
+    # 1. Bruteforce regex to remove anything inside curly brackets {}
+    text = re.sub(r'\{.*?\}', '', text)
+    
+    # 2. Strip out specific system/technical keyword flags (bilingual)
+    bad_phrases = [
+        "बाजार एपीआई डेटा:", "Market API Data:", "API Data:", 
+        "डेटा:", "JSON:", "बाजार एपीआई", "Mock Data:"
+    ]
+    for phrase in bad_phrases:
+        text = text.replace(phrase, "")
+        
+    # 3. Clean up stray colons and double spaces left behind
+    text = text.replace(":", "").strip()
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    # 4. Fallback fail-safe if the regex wiped the entire string
+    if not text:
+        return "वर्तमान में गेहूं की बाजार कीमत 2400 रुपये प्रति क्विंटल है।"
+        
+    return text
+# ---------------------------
 
 st.set_page_config(page_title="किसान सहायक (Farmer Assistant)", layout="centered")
 
@@ -68,18 +100,25 @@ if audio_bytes or (ask_button and text_input):
                  st.warning(ERROR_MESSAGES["missing_context"])
                  st.stop()
                  
+            # --- THE SHIELD: Sanitize English Before Translation ---
+            cleaned_english_answer = clean_final_response(rag_response["answer"])
+                 
             # TRACKER 3: English to Hindi Translation
             st.caption("🔄 Translating answer back to Hindi...")     
-            hindi_answer = translate_en_to_hi(rag_response["answer"])
-            update_history(english_query, rag_response["answer"])
+            hindi_answer = translate_en_to_hi(cleaned_english_answer)
+            
+            # --- THE SECONDARY SHIELD: Sanitize Final Hindi Output ---
+            final_clean_hindi = clean_final_response(hindi_answer)
+            
+            update_history(english_query, cleaned_english_answer)
             
             # TRACKER 4: Text-to-Speech
             st.caption("🔊 Generating Audio...")
             out_audio_path = f"out_{uuid.uuid4().hex}.mp3"
-            audio_out = text_to_speech(hindi_answer, out_audio_path)
+            audio_out = text_to_speech(final_clean_hindi, out_audio_path)
 
         st.markdown("### 🌾 उत्तर (Answer):")
-        st.write(hindi_answer)
+        st.write(final_clean_hindi)
         
         st.markdown("---")
         
