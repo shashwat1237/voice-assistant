@@ -10,7 +10,7 @@ from translator.hindi_to_english import translate_hi_to_en
 from translator.english_to_hindi import translate_en_to_hi
 from orchestration.state_manager import init_session_state, get_history_string, update_history, clear_history
 from orchestration.error_handlers import ERROR_MESSAGES, EmptyAudioError, NoisyAudioError, PartialRecordingError, LLMTimeoutError, VectorDBError, OutOfDomainError
-
+from rag.retrieval import retrieve_and_answer
 # --- INTERCEPTOR UTILITY ---
 def clean_final_response(text: str) -> str:
     """
@@ -91,7 +91,7 @@ if audio_bytes or (ask_button and text_input):
             
             # TRACKER 2: RAG Pipeline & Expert LLM
             st.caption("🔍 Searching database and generating answer...")
-            rag_response = route_query(english_query, current_history)
+            rag_response = retrieve_and_answer(english_query, current_history)
             
             if rag_response["answer"] == "Please specify your question.":
                  st.warning(ERROR_MESSAGES["missing_context"])
