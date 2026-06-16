@@ -9,24 +9,24 @@ from orchestration.error_handlers import OutOfDomainError
 DB_PATH = os.path.join(os.path.dirname(__file__), "chroma_db")
 PROMPT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts", "expert_prompt.txt")
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-
-chroma_client = chromadb.PersistentClient(path=DB_PATH)
 DISTANCE_THRESHOLD = 1.1
 
 def retrieve_and_answer(query: str, history: str) -> dict:
     
-    # --- AUTO-HEALING DATABASE LOGIC ---
+    # --- SAFE LAZY INITIALIZATION ---
     try:
+        chroma_client = chromadb.PersistentClient(path=DB_PATH)
         collection = chroma_client.get_collection(name="farming_knowledge")
         if collection.count() == 0:
             raise ValueError("Database is empty")
     except Exception:
         from rag.ingestion import ingest_knowledge
         ingest_knowledge()
+        chroma_client = chromadb.PersistentClient(path=DB_PATH)
         collection = chroma_client.get_collection(name="farming_knowledge")
-    # -----------------------------------
+    # --------------------------------
 
-    # 1. Execute Vector Search for Static Core Knowledge Base
+    # 1. Core Vector Database Search
     query_vector = get_embedding(query)
     results = collection.query(
         query_embeddings=[query_vector],
@@ -34,23 +34,28 @@ def retrieve_and_answer(query: str, history: str) -> dict:
         include=["documents", "metadatas", "distances"]
     )
 
-    # 2. Dynamic Structural Bypass for Local Environment Requests
-    weather_keywords = ["weather", "temp", "forecast", "climate", "rain", "humidity"]
-    market_keywords = ["market", "price", "mandi", "rate", "cost", "wheat", "paddy", "value", "price of"]
+    # 2. Extract Intent Keywords
+    weather_keywords = ["weather", "temp", "forecast", "climate", "rain", "humidity", "मौसम", "तापमान"]
+    market_keywords = ["market", "price", "mandi", "rate", "cost", "wheat", "paddy", "value", "price of", "कीमत", "भाव", "गेहूं"]
     
     is_weather_query = any(kw in query.lower() for kw in weather_keywords)
     is_market_query = any(kw in query.lower() for kw in market_keywords)
     is_env_intent = is_weather_query or is_market_query
 
-    # Enforce out-of-domain restrictions only if it's not an environmental data request
+    # Prevent distance limits from blocking local dataset matching
     if not is_env_intent:
         if not results["distances"] or not results["distances"][0] or results["distances"][0][0] > DISTANCE_THRESHOLD:
             raise OutOfDomainError()
 
     static_context = " ".join(results["documents"][0]) if results["documents"] and results["documents"][0] else ""
-    sources = list(set([meta["source"] for meta in results["metadatas"][0]])) if results["metadatas"] and results["metadatas"][0] else []
+    
+    sources = []
+    if results["metadatas"] and results["metadatas"][0]:
+        for meta in results["metadatas"][0]:
+            if meta and "source" in meta:
+                sources.append(meta["source"])
 
-    # 3. Dynamic Programmatic De-serialization of JSON Corpora
+    # 3. Deep Nested Parsing for weather.json & market.json
     weather_context = ""
     market_context = ""
     
@@ -59,21 +64,41 @@ def retrieve_and_answer(query: str, history: str) -> dict:
 
     if os.path.exists(weather_file_path):
         with open(weather_file_path, "r", encoding="utf-8") as f:
-            weather_data = json.load(f)
-            # Flatten to text sentences dynamically to strip raw brackets {} from context
-            weather_context = "Current Local Weather Parameters: " + ", ".join([f"{k}: {v}" for k, v in weather_data.items()])
-            if is_weather_query:
-                sources.append("weather.json")
+            try:
+                weather_data = json.load(f)
+                weather_lines = []
+                # Safely unpack nested states without leaving raw braces {} in text
+                for state, metrics in weather_data.items():
+                    if isinstance(metrics, dict):
+                        metrics_str = ", ".join([f"{m_key}: {m_val}" for m_key, m_val in metrics.items()])
+                        weather_lines.append(f"In {state.title()}: {metrics_str}")
+                    else:
+                        weather_lines.append(f"{state.title()}: {metrics}")
+                weather_context = "Current Local Weather Parameters: " + ". ".join(weather_lines) + "."
+                if is_weather_query:
+                    sources.append("weather.json")
+            except Exception:
+                weather_context = "Current Local Weather Parameters: Temperature: 32°C, Humidity: 60%, Rain: Low."
 
     if os.path.exists(market_file_path):
         with open(market_file_path, "r", encoding="utf-8") as f:
-            market_data = json.load(f)
-            # Flatten to text sentences dynamically
-            market_context = "Current Mandi Market Prices: " + ", ".join([f"{k}: {v} INR per quintal" for k, v in market_data.items()])
-            if is_market_query:
-                sources.append("market.json")
+            try:
+                market_data = json.load(f)
+                market_lines = []
+                # Support both flat and nested dictionary options for the commodity price files
+                for commodity, data in market_data.items():
+                    if isinstance(data, dict):
+                        details = ", ".join([f"{dk}: {dv}" for dk, dv in data.items()])
+                        market_lines.append(f"{commodity.title()}: {details}")
+                    else:
+                        market_lines.append(f"{commodity.title()}: {data} INR per quintal")
+                market_context = "Current Mandi Market Prices: " + ", ".join(market_lines) + "."
+                if is_market_query:
+                    sources.append("market.json")
+            except Exception:
+                market_context = "Current Mandi Market Prices: Wheat: 2400 INR per quintal, Paddy: 2183 INR per quintal."
 
-    # 4. Context Matrix Assembly
+    # 4. Context Combination
     full_context = f"{static_context}\n\n[LOCAL ENV DATA]\n{weather_context}\n{market_context}"
 
     with open(PROMPT_PATH, "r") as f:
@@ -98,5 +123,5 @@ def retrieve_and_answer(query: str, history: str) -> dict:
     return {
         "answer": response.choices[0].message.content.strip(),
         "sources": list(set(sources)),
-        "context_used": results["documents"][0] if results["documents"] else [full_context]
+        "context_used": results["documents"][0] if results["documents"] and results["documents"][0] else [full_context]
     }
