@@ -37,8 +37,6 @@ def clean_final_response(text: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     
     # 4. Fallback fail-safe if the regex wiped the entire string
-    if not text:
-        return "वर्तमान में गेहूं की बाजार कीमत 2400 रुपये प्रति क्विंटल है।"
         
     return text
 # ---------------------------
