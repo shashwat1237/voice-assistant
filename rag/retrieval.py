@@ -78,7 +78,7 @@ def retrieve_and_answer(query: str, history: str) -> dict:
                 if is_weather_query:
                     sources.append("weather.json")
             except Exception:
-                weather_context = "Current Local Weather Parameters: Temperature: 32°C, Humidity: 60%, Rain: Low."
+                pass
 
     if os.path.exists(market_file_path):
         with open(market_file_path, "r", encoding="utf-8") as f:
@@ -96,7 +96,7 @@ def retrieve_and_answer(query: str, history: str) -> dict:
                 if is_market_query:
                     sources.append("market.json")
             except Exception:
-                market_context = "Current Mandi Market Prices: Wheat: 2400 INR per quintal, Paddy: 2183 INR per quintal."
+                pass
 
     # 4. Context Combination
     full_context = f"{static_context}\n\n[LOCAL ENV DATA]\n{weather_context}\n{market_context}"
