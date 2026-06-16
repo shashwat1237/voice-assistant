@@ -8,7 +8,6 @@ from voice.whisper import speech_to_text
 from voice.tts import text_to_speech
 from translator.hindi_to_english import translate_hi_to_en
 from translator.english_to_hindi import translate_en_to_hi
-from orchestration.router import route_query
 from orchestration.state_manager import init_session_state, get_history_string, update_history, clear_history
 from orchestration.error_handlers import ERROR_MESSAGES, EmptyAudioError, NoisyAudioError, PartialRecordingError, LLMTimeoutError, VectorDBError, OutOfDomainError
 
